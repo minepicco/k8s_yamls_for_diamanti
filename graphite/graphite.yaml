@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphite
+  labels:
+    app: graphite
+spec:
+  ports:
+    - port: 80
+  selector:
+    app: grafana
+    tier: frontend
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gp-pv-claim
+  labels:
+    app: graphite
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  creationTimestamp: null
+  labels:
+    volume: gp-pv
+  name: gp-pv
+spec:
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 50Gi
+  flexVolume:
+    driver: diamanti.com/volume
+    fsType: ext4
+    options:
+      name: gp-pv
+      perfTier: high
+  persistentVolumeReclaimPolicy: Retain
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: graphite
+  labels:
+    app: graphite
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: graphite
+        tier: frontend
+      annotations:
+        diamanti.com/endpoint0: '{"network":"internal-net","perfTier":"high"}'
+    spec:
+      containers:
+      - image: minepicco/graphite:latest
+        name: graphite
+        ports:
+        - containerPort: 80
+          name: graphite
+        volumeMounts:
+        - name: graphite-persistent-storage
+          mountPath: /etc/graphite
+      volumes:
+      - name: graphite-persistent-storage
+        persistentVolumeClaim:
+          claimName: gp-pv-claim
