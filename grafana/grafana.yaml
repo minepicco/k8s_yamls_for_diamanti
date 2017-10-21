@@ -71,7 +71,7 @@ spec:
           name: grafana
         volumeMounts:
         - name: grafana-persistent-storage
-          mountPath: /var/www/html
+          mountPath: /etc/grafana
       volumes:
       - name: grafana-persistent-storage
         persistentVolumeClaim:
